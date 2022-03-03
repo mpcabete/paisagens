@@ -10,7 +10,7 @@ const h = (canvas.height = graphCanvas.height = window.innerHeight);
 
 async function loadTiff() {
   // using local ArrayBuffer
-  const response = await fetch("./tiffs/small.tif");
+  const response = await fetch("./tiffs/sent-ndvi.tif");
   const arrayBuffer = await response.arrayBuffer();
   const tiff = await GeoTIFF.fromArrayBuffer(arrayBuffer);
   return tiff;
@@ -22,7 +22,7 @@ async function main() {
   const image = await tiff.getImage();
   const data = await image.readRasters();
 
-  const size = 50;
+  const size = 700;
   const origin = { x: 0, y: 0 };
   const graph = new Graph(size, origin);
   console.log('computing graph...')
@@ -35,10 +35,10 @@ async function main() {
   //TODO: mudar escala de ciza pra escala do plotty
   //
 
-  console.log('rendering image')
-  drawTiff(canvas, data);
   console.log('rendering graph')
   drawGraph(graphCanvas, graph);
+  console.log('rendering image')
+  drawTiff(canvas, data);
 
   var slider = document.getElementById("opacity");
   slider.addEventListener("input", (e) => {
@@ -48,18 +48,21 @@ async function main() {
 function drawTiff(canvas, data) {
   const { width, height } = data;
   const ctx = canvas.getContext("2d");
-  const newData = [];
-  for (let i in data[0]) {
-    const v = data[0][i];
-    const x = Math.round(((v + 1) / 2) * 255);
-    newData.push(x);
-    newData.push(x);
-    newData.push(x);
-    newData.push(255);
+  const n = data[0].length
+  const newData = new Uint8ClampedArray(n*4);
+  console.log('const',n)
+  for (let k = 0;k<n;k++) {
+    const v = data[0][k];
+    const x = Math.floor(((v + 1) / 2) * 255);
+    newData[k*4] = x;
+    newData[k*4+1] = x;
+    newData[k*4+2] = x;
+    newData[k*4+3] =255;
   }
-
+  console.log('put')
+  const img = new ImageData(newData, width, height)
   ctx.putImageData(
-    new ImageData(new Uint8ClampedArray(newData), width, height),
+    img,
     0,
     0
   );
@@ -96,5 +99,4 @@ function drawHex(ctx, points, fill = null) {
   ctx.fill();
 }
 
-//printHexagons(canvas)
 main();
