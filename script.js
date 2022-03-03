@@ -21,40 +21,38 @@ async function main(){
   const tiff = await loadTiff();
   const image = await tiff.getImage();
   const data = await image.readRasters();
-  const {width, height} = data
 
   const size = 40
   const origin = {x:0,y:0}
   const graph = new Graph(size,origin)
+  const {width, height} = data
   for(let i in data[0]){
     //TODO: da pra otimizar, com ele checando se o tile nao mudou e dar tile.addPixel
     const x = i % width
-    const y = Math.floor(i/height)
+    const y = Math.floor(i/width)
     const value = data[0][i]
     graph.addPixel({x,y},value)
   }
 
   //const xy = graph.hexToPixel(new Hex(0,-1,1))
-  //console.log('xy',xy)
-  //console.log(data[0])
-  //plotData(width,height,data[0])
   //
-  //TODO: separar isso numa funçao
   //TODO: ver problema da discrepancia de tamanho(provavelmente precisa normalizar
   //por raiz de 3, ou algo do tipo
   //TODO: mudar escala de ciza pra escala do plotty
   //
-  const hexs = graph.tiles.map((x) => {
-    return {
-      points: graph.polygonCorners(x),
-      fill: Math.round((x.mean+1)/2*255),
-    };
-  });
 
-  const ctx = graphCanvas.getContext('2d')
-  ctx.setImage
-  console.log('ctx',ctx)
+  drawTiff(canvas,data)
+  drawGraph(graphCanvas,graph)
 
+  var slider = document.getElementById("opacity");
+  slider.addEventListener( 'input',(e)=> {
+    graphCanvas.style.opacity = e.target.value
+  })
+
+}
+function drawTiff(canvas,data){
+  const {width, height} = data
+  const ctx = canvas.getContext('2d')
   const newData = []
   for (let i in data[0]){
     const v = data[0][i]
@@ -66,9 +64,18 @@ async function main(){
 
   }
 
-  //console.log('newData',newData)
   ctx.putImageData(new ImageData(new Uint8ClampedArray(newData),width,height),0,0)
 
+}
+function drawGraph(canvas,graph){
+  const hexs = graph.tiles.map((x) => {
+    return {
+      points: graph.polygonCorners(x),
+      fill: Math.round((x.mean+1)/2*255),
+    };
+  });
+
+  const ctx = canvas.getContext('2d')
   ctx.lineWidth = 5
   ctx.strokeStile = 'black'
   hexs.forEach(hex=>{
